@@ -1,18 +1,21 @@
-import { createPool, Pool } from "mariadb";
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-// Membuat connection pool ke MariaDB (XAMPP)
-const globalForDb = globalThis as unknown as {
-  pool: Pool | undefined;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
 };
 
-export const pool =
-  globalForDb.pool ??
-  createPool({
-    host: "localhost",
-    port: 3306,
-    user: "root",
-    database: "jurnal_kali",
-    connectionLimit: 5,
-  });
+let prisma: PrismaClient;
 
-if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
+if (globalForPrisma.prisma) {
+  prisma = globalForPrisma.prisma;
+} else {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+}
+
+export { prisma };
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
